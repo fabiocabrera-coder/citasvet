@@ -1,0 +1,189 @@
+ /* Estilos generales */
+ * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f7fb;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Encabezado */
+header {
+    background-color: #004b8d;
+    color: white;
+    width: 100%;
+    height: 80px; /* Tamaño uniforme del header */
+    padding: 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo svg {
+    width: 35px;
+    height: 35px;
+    fill: white;
+}
+
+.logo span {
+    font-size: 1.7em;
+    font-weight: bold;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.header-buttons .btn {
+    padding: 10px 20px;
+    font-size: 0.9em;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    color: white;
+    background-color: #28a745;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.header-buttons .btn:hover {
+    background-color: #218838;
+    transform: scale(1.05);
+}
+
+.header-buttons .btn-secondary {
+    background-color: #6c757d;
+}
+
+.header-buttons .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Contenedor principal */
+.container {
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    margin: auto; /* Centramos vertical y horizontalmente */
+    padding: 60px;
+    width: 90%;
+    max-width: 1200px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 3em;
+    margin-bottom: 40px;
+    color: #004b8d;
+    font-weight: 600;
+}
+
+/* Botones */
+.btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 30px;
+    font-size: 1.5em;
+    color: white;
+    background-color: #007bff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    margin: 20px auto;
+    width: 80%;
+    max-width: 500px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+.btn .material-icons {
+    margin-right: 10px;
+    font-size: 1.5em;
+}
+
+/* Diseño del spinner de carga */
+#user-name {
+    position: relative;
+    font-size: 1.5em;
+    color: #555;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+#user-name .spinner {
+    width: 25px;
+    height: 25px;
+    border: 3px solid #ccc;
+    border-top-color: #004b8d;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #f1f1f1;
+    color: #777;
+    font-size: 1em;
+    width: 100%;
+    height: 80px; /* Tamaño uniforme del footer */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+    .container {
+        padding: 40px 20px;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    .btn {
+        font-size: 1.2em;
+    }
+
+    .header-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

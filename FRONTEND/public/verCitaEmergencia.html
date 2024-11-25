@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cita de Emergencia</title>
+    <link href="css/verCitaEmergencia.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <div class="emergency-icon">⚠️</div>
+        <h1>Detalles de la Cita de Emergencia</h1>
+        <div id="citaDetalles">Cargando detalles de la cita...</div>
+        <p class="cita-info">Su cita de emergencia será atendida lo más rápido posible.</p>
+        <button id="backToPanel" class="btn">Regresar al Panel Principal</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // Función para obtener los detalles de la cita de emergencia
+        async function obtenerCitaEmergencia() {
+            const token = sessionStorage.getItem('token');
+
+            try {
+                const response = await axios.get('/api/v1/citas/emergencia', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const cita = response.data.cita;
+                if (cita) {
+                    document.getElementById("citaDetalles").innerHTML = `
+                        <p class="cita-info"><strong>Fecha:</strong> ${new Date(cita.fecha).toLocaleString()}</p>
+                        <p class="cita-info"><strong>Estado:</strong> ${cita.estado}</p>
+                        <p class="cita-info"><strong>Veterinario:</strong> ${cita.veterinario_nombre}</p>
+                        <p class="cita-info"><strong>Cliente:</strong> ${cita.cliente_nombre}</p>
+                        <p class="cita-info"><strong>Mascota:</strong> ${cita.mascota_nombre}</p>
+                        <p class="cita-info"><strong>Tipo de Cita:</strong> ${cita.tipo_cita_nombre}</p>
+                    `;
+                } else {
+                    document.getElementById("citaDetalles").innerText = "No hay citas de emergencia en este momento.";
+                }
+            } catch (error) {
+                console.error('Error al obtener la cita de emergencia:', error);
+                alert('Error al obtener la cita de emergencia');
+            }
+        }
+
+        // Función para redirigir al panel principal del cliente
+        document.getElementById("backToPanel").addEventListener("click", () => {
+            window.location.href = "/client";
+        });
+
+        // Cargar la cita de emergencia al cargar la página
+        obtenerCitaEmergencia();
+    </script>
+</body>
+</html>

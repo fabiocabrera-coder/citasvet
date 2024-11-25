@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Mascotas para Cita</title>
+    <link href="css/verMascotasCitas.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- Encabezado -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="back-to-client-panel" class="btn btn-secondary">Volver al Panel Principal</button>
+        </div>
+    </header>
+    
+    <div class="container">
+        <h1>Seleccionar Mascota para Cita</h1>
+        <ul id="mascotas-list"></ul>
+    </div>
+    
+    <!-- Pie de página -->
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados.
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = sessionStorage.getItem('token');
+        const mascotasList = document.getElementById('mascotas-list');
+        const backToClientPanel = document.getElementById('back-to-client-panel');
+
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+
+        // Cargar las mascotas del cliente
+        async function loadMascotas() {
+            try {
+                const response = await axios.get('/api/v1/mascotas', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                mostrarMascotas(response.data.mascotas);
+            } catch (error) {
+                console.error('Error al cargar mascotas:', error);
+                alert('Error al cargar mascotas.');
+            }
+        }
+
+        // Mostrar mascotas en la lista con los botones "Cita Normal" y "Cita Emergencia"
+        function mostrarMascotas(mascotas) {
+        mascotasList.innerHTML = '';
+        mascotas.filter(mascota => mascota.estado === 'VIVO').forEach(mascota => {
+            const li = document.createElement('li');
+            li.textContent = `${mascota.nombre} (${mascota.especie} - ${mascota.raza})`;
+
+            const citaNormalButton = document.createElement('button');
+            citaNormalButton.textContent = 'Cita Normal';
+            citaNormalButton.classList.add('btn', 'btn-normal');
+            citaNormalButton.onclick = () => window.location.href = `/citas?mascotaId=${mascota.id}`;
+
+            const citaEmergenciaButton = document.createElement('button');
+            citaEmergenciaButton.textContent = 'Cita Emergencia';
+            citaEmergenciaButton.classList.add('btn', 'btn-emergencia');
+            citaEmergenciaButton.onclick = () => confirmarCitaEmergencia(mascota.id);
+
+            li.appendChild(citaNormalButton);
+            li.appendChild(citaEmergenciaButton);
+            mascotasList.appendChild(li);
+        });
+        }
+
+        // Función para confirmar y crear la cita de emergencia
+        function confirmarCitaEmergencia(mascotaId) {
+            if (confirm("Seguro que quiere realizar una cita de emergencia?")) {
+                reservarCitaEmergencia(mascotaId);
+            }
+        }
+
+        // Lógica para crear una cita de emergencia
+        async function reservarCitaEmergencia(mascotaId) {
+            const idVeterinario = 2; // Reemplaza con el ID del veterinario correspondiente
+            try {
+                const response = await axios.post('/api/v1/citas/create-emergencia', { idMascota: mascotaId, idVeterinario }, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.data.ok) {
+                    alert("Su cita de emergencia ha sido creada. Será atendida lo más rápido posible.");
+                    window.location.href = "/ver-cita-emergencia"; // Redirigir a la página de ver la cita de emergencia
+                }
+            } catch (error) {
+                console.error('Error al crear cita de emergencia:', error);
+                alert('Error al crear cita de emergencia');
+            }
+        }
+
+        // Redirigir al panel principal del cliente
+        backToClientPanel.addEventListener('click', () => {
+            window.location.href = '/client';
+        });
+
+        // Cargar las mascotas cuando la página se cargue
+        loadMascotas();
+    </script>
+</body>
+</html>

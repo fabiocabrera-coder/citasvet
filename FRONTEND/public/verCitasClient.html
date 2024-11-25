@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Citas</title>
+    <link href="css/verCitasClient.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+        <button id="back-to-panel" class="btn">Volver al Panel Principal</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Mis Citas</h1>
+        <div class="filters">
+            <div>
+                <label for="estado-filter">Estado:</label>
+                <select id="estado-filter">
+                    <option value="">Todos</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Confirmada">Confirmada</option>
+                    <option value="Completada">Completada</option>
+                    <option value="Cancelada">Cancelada</option>
+                    <option value="Emergencia">Emergencia</option>
+                </select>
+            </div>
+            <div>
+                <label for="tipo-cita-filter">Tipo de Cita:</label>
+                <select id="tipo-cita-filter">
+                    <option value="">Todos</option>
+                    <option value="Consulta general">Consulta general</option>
+                    <option value="Vacunación">Vacunación</option>
+                    <option value="Desparasitación">Desparasitación</option>
+                    <option value="Esterilización">Esterilización</option>
+                    <option value="Limpieza dental">Limpieza dental</option>
+                    <option value="Examenes de diagnóstico">Examenes de diagnóstico</option>
+                    <option value="Spa de mascota">Spa de mascota</option>
+                    <option value="Servicio de emergencia">Servicio de emergencia</option>
+                </select>
+            </div>
+            <div>
+                <label for="fecha-filter">Fecha:</label>
+                <input type="date" id="fecha-filter">
+            </div>
+            <button id="apply-filters">Aplicar Filtros</button>
+        </div>
+
+        <ul id="citas-list"></ul>
+    </div>
+
+    <!-- Modal para ingresar razón de cancelación -->
+    <div id="cancelModal">
+        <div id="modalContent">
+            <h2>Razón de Cancelación</h2>
+            <textarea id="cancelReason" placeholder="Ingrese la razón de cancelación..."></textarea>
+            <button class="btn-modal btn-send" id="sendReason">Enviar</button>
+            <button class="btn-modal btn-cancel-modal" id="closeModal">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>© 2024 CitVet. Todos los derechos reservados.</footer>
+
+    <script>
+        const token = sessionStorage.getItem('token');
+        let currentCitaId = null;
+
+        function formatDateTime(dateTime) {
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' };
+            return new Date(dateTime).toLocaleString('es-PE', options);
+        }
+
+        async function loadCitas() {
+            const estadoFilter = document.getElementById('estado-filter').value;
+            const tipoCitaFilter = document.getElementById('tipo-cita-filter').value;
+            const fechaFilter = document.getElementById('fecha-filter').value;
+
+            try {
+                const response = await axios.get('/api/v1/citas/client/citas-cliente', { 
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const citas = response.data.citas;
+
+                const citasList = document.getElementById('citas-list');
+                citasList.innerHTML = '';
+
+                citas
+                    .filter(cita => {
+                        if (estadoFilter && cita.estado !== estadoFilter) return false;
+                        if (tipoCitaFilter && cita.tipo_cita_nombre !== tipoCitaFilter) return false;
+                        if (fechaFilter && !cita.fecha.startsWith(fechaFilter)) return false;
+                        return true;
+                    })
+                    .forEach(cita => {
+                        const li = document.createElement('li');
+                        li.classList.add('cita-item');
+                        
+                        const citaDetails = document.createElement('div');
+                        citaDetails.classList.add('cita-details');
+                        let cancelDetails = '';
+
+                        // Mostrar detalles adicionales si la cita fue cancelada
+                        if (cita.estado.toLowerCase() === 'cancelada') {
+                            cancelDetails = `
+                                <strong>Razón de cancelación:</strong> ${cita.razon_cancelacion || 'No especificada'}<br>
+                                <strong>Cancelado por:</strong> ${cita.actualizado_por || 'No especificado'}<br>
+                            `;
+                        }
+
+                        citaDetails.innerHTML = `
+                            <strong>Fecha:</strong> ${formatDateTime(cita.fecha)}<br>
+                            <strong>Veterinario:</strong> ${cita.veterinario_nombre}<br>
+                            <strong>Mascota:</strong> ${cita.mascota_nombre}<br>
+                            <strong>Descripción:</strong> ${cita.descripcion || 'Sin descripción'}<br>
+                            <strong>Tipo de cita:</strong> ${cita.tipo_cita_nombre}<br>
+                            <strong>Precio:</strong> ${cita.tipo_cita_precio}<br>
+                            <strong>Estado:</strong> ${cita.estado}<br>
+                            ${cancelDetails}
+                        `;
+
+                        // Botón para cancelar citas no aplicable si la cita ya fue cancelada o completada
+                        if (cita.tipo_cita_nombre.toLowerCase() !== 'servicio de emergencia' &&
+                            (cita.estado.toLowerCase() === 'pendiente' || cita.estado.toLowerCase() === 'confirmada')) {
+                            const cancelButton = document.createElement('button');
+                            cancelButton.textContent = 'Cancelar';
+                            cancelButton.classList.add('btn-cancel');
+                            cancelButton.dataset.citaId = cita.cita_id || cita.id;
+
+                            cancelButton.addEventListener('click', () => openCancelModal(cancelButton.dataset.citaId));
+                            li.appendChild(cancelButton);
+                        }
+
+                        li.appendChild(citaDetails);
+                        citasList.appendChild(li);
+                    });
+            } catch (error) {
+                console.error('Error al cargar citas:', error);
+                alert('Error al cargar citas');
+            }
+        }
+
+        function openCancelModal(idCita) {
+            currentCitaId = idCita;
+            document.getElementById('cancelModal').style.display = 'flex';
+        }
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('cancelModal').style.display = 'none';
+            document.getElementById('cancelReason').value = '';
+        });
+
+        document.getElementById('sendReason').addEventListener('click', async () => {
+            const razonCancelacion = document.getElementById('cancelReason').value.trim();
+            if (!razonCancelacion) {
+                alert('Por favor, ingrese una razón de cancelación.');
+                return;
+            }
+            try {
+                await axios.put(`/api/v1/citas/cliente/cancelar/${currentCitaId}`, { razonCancelacion }, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                alert('Cita cancelada con éxito');
+                loadCitas();
+                document.getElementById('cancelModal').style.display = 'none';
+            } catch (error) {
+                console.error('Error al cancelar la cita:', error);
+                alert('Error al cancelar la cita');
+            }
+        });
+
+        document.getElementById('apply-filters').addEventListener('click', loadCitas);
+        document.getElementById('back-to-panel').addEventListener('click', () => window.location.href = '/client');
+
+        loadCitas();
+    </script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignar Rol de Emergencia</title>
+    <link rel="stylesheet" href="css/asignarVetEmergencia.css">
+    
+</head>
+<body>
+     <!-- Header -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="back-to-admin" class="btn">Volver al Panel Principal</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Asignar Rol de Emergencia a Veterinario</h1>
+        <div class="columns">
+            <!-- Columna para veterinarios sin rol de emergencia -->
+            <div class="column">
+                <h2>Sin Rol de Emergencia</h2>
+                <ul id="vets-without-role"></ul>
+            </div>
+            <!-- Columna para veterinarios con rol de emergencia -->
+            <div class="column">
+                <h2>Con Rol de Emergencia</h2>
+                <ul id="vets-with-role"></ul>
+            </div>
+        </div>
+    </div>
+
+     <!-- Footer -->
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados.
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = sessionStorage.getItem('token');
+        const vetsWithoutRole = document.querySelector('#vets-without-role');
+        const vetsWithRole = document.querySelector('#vets-with-role');
+
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+
+        // Cargar lista de veterinarios y separarlos según su rol
+        async function loadUsers() {
+            try {
+                const response = await axios.get('/api/v1/users/vets', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = response.data.veterinarios;
+
+                // Limpiar las listas
+                vetsWithoutRole.innerHTML = '';
+                vetsWithRole.innerHTML = '';
+
+                users.forEach(user => {
+                    const li = document.createElement('li');
+                    li.classList.add('user-item');
+                    li.innerHTML = `
+                        <strong>Nombre:</strong> ${user.nombre}<br>
+                        <strong>Correo:</strong> ${user.correo}<br>
+                        <strong>Rol Actual:</strong> ${user.rol}<br>
+                    `;
+
+                    // Botón para asignar o remover rol de emergencia
+                    const actionButton = document.createElement('button');
+                    actionButton.textContent = user.rol === 'VET_EM' ? 'Remover Rol de Emergencia' : 'Asignar Rol de Emergencia';
+                    actionButton.classList.add(user.rol === 'VET_EM' ? 'btn-remove' : 'btn-assign');
+
+                    // Asignar acción al botón
+                    actionButton.addEventListener('click', () => {
+                        if (user.rol === 'VET_EM') {
+                            removeEmergencyRole(user.id, user.nombre);
+                        } else {
+                            assignEmergencyRole(user.id, user.nombre);
+                        }
+                    });
+
+                    li.appendChild(actionButton);
+
+                    // Añadir a la columna correspondiente
+                    if (user.rol === 'VET_EM') {
+                        vetsWithRole.appendChild(li);
+                    } else {
+                        vetsWithoutRole.appendChild(li);
+                    }
+                });
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                alert('Error al cargar usuarios.');
+            }
+        }
+
+        // Asignar rol de emergencia
+        async function assignEmergencyRole(id, nombre) {
+            try {
+                const response = await axios.put(`/api/v1/users/vets/emergency-role/${id}`, {}, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.data.ok) {
+                    alert(`Rol de emergencia asignado correctamente a ${nombre}`);
+                    loadUsers(); // Recargar listas
+                }
+            } catch (error) {
+                console.error('Error al asignar rol de emergencia:', error);
+                alert('Error al asignar rol de emergencia.');
+            }
+        }
+
+        // Remover rol de emergencia
+        async function removeEmergencyRole(id, nombre) {
+            try {
+                const response = await axios.put(`/api/v1/users/vets/remove-emergency-role/${id}`, {}, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.data.ok) {
+                    alert(`Rol de emergencia removido correctamente de ${nombre}`);
+                    loadUsers(); // Recargar listas
+                }
+            } catch (error) {
+                console.error('Error al remover rol de emergencia:', error);
+                alert('Error al remover rol de emergencia.');
+            }
+        }
+
+        document.querySelector('#back-to-admin').addEventListener('click', () => {
+            window.location.href = '/admin';
+        });
+
+        loadUsers();
+    </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Mascotas</title>
+    <link href="css/mascotas.css" rel="stylesheet" />
+</head>
+<body>
+<!-- Encabezado -->
+<header>
+    <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+        </svg>
+        <span>CitVet</span>
+    </div>
+    <div class="header-buttons">
+        <button id="back-to-client-panel" class="btn btn-secondary">Volver al Panel Principal</button>
+    </div>
+</header>
+
+    <!-- Contenedor principal -->
+    <div class="container">
+        <!-- Formulario -->
+        <div class="form-section">
+            <h1>Gestionar Mascotas</h1>
+            <form id="mascotaForm">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" placeholder="Nombre de la mascota" required>
+
+                <label for="especie">Especie:</label>
+                <select id="especie" required>
+                    <option value="">Seleccione una especie</option>
+                    <option value="Perro">Perro</option>
+                    <option value="Gato">Gato</option>
+                    <option value="Ave">Ave</option>
+                    <option value="Conejo">Conejo</option>
+                    <option value="Hamster">Hamster</option>
+                    <option value="Cuy">Cuy</option>
+                </select>
+
+                <label for="raza">Raza:</label>
+                <select id="raza" required>
+                    <option value="">Seleccione una raza</option>
+                </select>
+
+                <label for="fechaNacimiento">Fecha de nacimiento:</label>
+                <input type="date" id="fechaNacimiento" required>
+
+                <button type="submit" class="btn">Agregar Mascota</button>
+            </form>
+        </div>
+
+        <!-- Imagen -->
+        <div class="image-section">
+            <img src="https://ichef.bbci.co.uk/ace/ws/640/amz/worldservice/live/assets/images/2015/06/12/150612173542_mascota_promo_624x351_thinkstock.jpg.webp" alt="Mascotas felices">
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = sessionStorage.getItem('token');
+        const mascotaForm = document.querySelector('#mascotaForm');
+        const backToClientPanel = document.querySelector('#back-to-client-panel');
+        const especieSelect = document.getElementById('especie');
+        const razaSelect = document.getElementById('raza');
+
+        // Listas de razas por especie
+        const razasPorEspecie = {
+            "Perro": ["Cocker Spaniel", "Schnauzer", "Poodle", "Shih Tzu", "Labrador Retriever", "Perro peruano", "Pitbull", "Bulldog", "Doberman"],
+            "Gato": ["Criollo", "Persa", "Siamés", "Angorá"],
+            "Ave": ["Periquito", "Canario", "Loro", "Cotorra"],
+            "Conejo": ["Enano", "Mini Lop", "Rex"],
+            "Hamster": ["Sirio"],
+            "Cuy": ["Cuy peruano"]
+        };
+
+        // Actualizar razas al seleccionar una especie
+        especieSelect.addEventListener('change', () => {
+            razaSelect.innerHTML = '<option value="">Seleccione una raza</option>';
+            const razas = razasPorEspecie[especieSelect.value];
+            if (razas) {
+                razas.forEach(raza => {
+                    const option = document.createElement('option');
+                    option.value = raza;
+                    option.textContent = raza;
+                    razaSelect.appendChild(option);
+                });
+            }
+        });
+
+        // Verificar autenticación del usuario
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+
+        // Crear una nueva mascota
+        mascotaForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const nombre = document.querySelector('#nombre').value;
+            const especie = especieSelect.value;
+            const raza = razaSelect.value;
+            const fechaNacimiento = document.querySelector('#fechaNacimiento').value;
+
+            try {
+                await axios.post('/api/v1/mascotas/create', {
+                    nombre,
+                    especie,
+                    raza,
+                    fechaNacimiento
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                alert('Mascota agregada');
+                mascotaForm.reset();  // Limpiar el formulario después de enviar
+            } catch (error) {
+                console.error('Error al agregar mascota:', error);
+                alert('Error al agregar mascota.');
+            }
+        });
+
+        // Redirigir al panel del cliente
+        backToClientPanel.addEventListener('click', () => {
+            window.location.href = '/client';
+        });
+    </script>
+</body>
+</html>

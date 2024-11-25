@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimientos</title>
+    <link href="css/verMovimientos.css" rel="stylesheet" />
+</head>
+<body>
+     <!-- Header -->
+     <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="back-to-admin" class="btn">Volver al Panel Principal</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main">
+        <div class="sidebar">
+            <button id="movimientos-clientes">Movimientos del Cliente</button>
+            <button id="movimientos-veterinarios">Movimientos del Veterinario</button>
+            <button id="movimientos-emergencia">Movimientos del Veterinario de Emergencias</button>
+        </div>
+        <div class="content">
+            <h1>Movimientos</h1>
+            <p id="no-data-message" class="no-data">Seleccione un botón para ver los movimientos de los usuarios.</p>
+            <table style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th>Acción</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="movimientos-tbody">
+                    <!-- Movimientos cargados aquí -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados.
+    </footer>
+    <script>
+        const token = sessionStorage.getItem('token');
+
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+
+        const movimientosTable = document.querySelector('table');
+        const movimientosTbody = document.getElementById('movimientos-tbody');
+        const noDataMessage = document.getElementById('no-data-message');
+        const contentHeader = document.querySelector('.content h1');
+
+        // Mostrar movimientos según rol
+        async function loadMovimientos(rolId, titulo) {
+            contentHeader.textContent = titulo;
+            movimientosTable.style.display = 'none'; // Ocultar la tabla mientras carga
+            noDataMessage.textContent = 'Cargando movimientos...';
+
+            try {
+                const response = await fetch(`/api/v1/movimientos/rol/${rolId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.ok && data.movimientos.length > 0) {
+                    movimientosTbody.innerHTML = ''; // Limpiar tabla
+
+                    data.movimientos.forEach(mov => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${mov.usuario_nombre}</td>
+                            <td>${mov.rol_nombre}</td>
+                            <td>${mov.tipo_accion}</td>
+                            <td>${new Date(mov.fecha).toLocaleString('es-PE')}</td>
+                        `;
+                        movimientosTbody.appendChild(row);
+                    });
+
+                    movimientosTable.style.display = 'table'; // Mostrar tabla
+                    noDataMessage.style.display = 'none'; // Ocultar mensaje
+                } else {
+                    movimientosTbody.innerHTML = '';
+                    movimientosTable.style.display = 'none'; // Ocultar tabla
+                    noDataMessage.textContent = 'No se encontraron movimientos.';
+                    noDataMessage.style.display = 'block'; // Mostrar mensaje
+                }
+            } catch (error) {
+                console.error('Error al cargar movimientos:', error);
+                movimientosTable.style.display = 'none'; // Ocultar tabla
+                noDataMessage.textContent = 'Error al cargar movimientos. Intente nuevamente más tarde.';
+                noDataMessage.style.display = 'block'; // Mostrar mensaje
+            }
+        }
+
+        // Asignar eventos a botones
+        document.getElementById('movimientos-clientes').addEventListener('click', () => loadMovimientos(3, 'Movimientos del Cliente'));
+        document.getElementById('movimientos-veterinarios').addEventListener('click', () => loadMovimientos(2, 'Movimientos del Veterinario'));
+        document.getElementById('movimientos-emergencia').addEventListener('click', () => loadMovimientos(5, 'Movimientos del Veterinario de Emergencias'));
+
+        // Redirigir al panel principal del administrador
+        document.getElementById('back-to-admin').addEventListener('click', () => {
+            window.location.href = '/admin';
+        });
+    </script>
+</body>
+</html>

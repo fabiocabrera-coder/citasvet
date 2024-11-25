@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Veterinario</title>
+    <link href="css/registrarVet.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- Encabezado -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z"/>
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="back-to-admin" class="btn btn-green">Volver al panel principal</button>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <div class="main-container">
+        <div class="card">
+            <div class="card-content">
+                <h1>Registrar Veterinario</h1>
+                <form id="create-vet-form">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" placeholder="Nombre completo" required>
+                    <span id="error-nombre" class="error-message">Por favor, ingrese su nombre.</span>
+
+                    <label for="correo">Correo:</label>
+                    <input type="email" id="correo" placeholder="Correo electrónico" required>
+                    <span id="error-correo" class="error-message">Por favor, ingrese un correo válido.</span>
+
+                    <label for="contrasena">Contraseña:</label>
+                    <input type="password" id="contrasena" placeholder="Contraseña" required>
+                    <span id="error-contrasena" class="error-message">La contraseña debe tener al menos 6 caracteres.</span>
+
+                    <button type="submit">Crear Veterinario</button>
+                </form>
+            </div>
+            <img class="image-container" src="https://www.zooplus.es/magazine/wp-content/uploads/2019/04/hamster-rasseportrait-768x512.jpg" alt="Hamster">
+        </div>
+    </div>
+    
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const createVetForm = document.querySelector('#create-vet-form');
+        const backToAdminButton = document.querySelector('#back-to-admin');
+
+        // Validaciones del formulario
+        function validateInputs() {
+            let isValid = true;
+
+            const nombre = document.querySelector('#nombre');
+            const correo = document.querySelector('#correo');
+            const contrasena = document.querySelector('#contrasena');
+
+            const errorNombre = document.querySelector('#error-nombre');
+            const errorCorreo = document.querySelector('#error-correo');
+            const errorContrasena = document.querySelector('#error-contrasena');
+
+            // Limpiar errores previos
+            errorNombre.textContent = '';
+            errorCorreo.textContent = '';
+            errorContrasena.textContent = '';
+
+            // Validar nombre
+            if (!nombre.value.trim()) {
+                errorNombre.textContent = 'Por favor, ingrese un nombre válido.';
+                isValid = false;
+            }
+
+            // Validar correo
+            if (!correo.value.trim() || !correo.value.includes('@')) {
+                errorCorreo.textContent = 'Por favor, ingrese un correo válido.';
+                isValid = false;
+            }
+
+            // Validar contraseña
+            if (contrasena.value.length < 6) {
+                errorContrasena.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Crear veterinario
+        createVetForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!validateInputs()) return;
+
+            const nombre = document.querySelector('#nombre').value;
+            const correo = document.querySelector('#correo').value;
+            const contrasena = document.querySelector('#contrasena').value;
+
+            // Verificar token
+            const token = sessionStorage.getItem('token');
+            if (!token) {
+                alert('Usuario no autenticado. Por favor, inicie sesión.');
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/v1/users/registrar-veterinario', {
+                    nombre,
+                    correo,
+                    contrasena,
+                    id_rol: 2 // Rol de veterinario
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.data.ok) {
+                    alert('Veterinario creado exitosamente');
+                    createVetForm.reset();
+                } else {
+                    alert('Error al crear veterinario: ' + response.data.msg);
+                }
+            } catch (error) {
+                console.error('Error al crear veterinario:', error);
+                if (error.response && error.response.status === 400) {
+                    alert('Datos inválidos. Revise los campos e intente nuevamente.');
+                } else if (error.response && error.response.status === 401) {
+                    alert('Autenticación fallida. Por favor, inicie sesión nuevamente.');
+                    window.location.href = '/login';
+                } else {
+                    alert('Error al crear veterinario. Intente más tarde.');
+                }
+            }
+        });
+
+        // Redirigir al panel de administrador
+        backToAdminButton.addEventListener('click', () => {
+            window.location.href = '/admin';
+        });
+    </script>
+</body>
+</html>

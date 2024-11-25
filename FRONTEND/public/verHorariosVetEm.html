@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Horarios</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <link href="css/verHorariosVetEm.css" rel="stylesheet" />
+
+</head>
+<body>
+    
+            <!-- Encabezado -->
+            <header>
+                <div class="logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+                    </svg>
+                    <span>CitVet</span>
+                </div>
+                <div class="header-buttons">
+                    <button id="back-to-vet-panel" class="btn">Volver al panel principal</button>
+                </div>
+            </header>
+            
+            <div class="container">
+                <!-- Lista de horarios -->
+                <div class="horarios-container">
+                    <h2>Lista de Horarios</h2>
+                    <ul id="horarios-list"></ul>
+                </div>
+        
+                <!-- Calendario -->
+                <div id="calendar"></div>
+            </div>
+            
+                    <!-- Pie de página -->
+            <footer>
+                &copy; 2024 CitVet. Todos los derechos reservados
+            </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script> <!-- Añade todos los locales -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const token = sessionStorage.getItem('token');
+            const calendarEl = document.getElementById('calendar');
+            const horariosList = document.getElementById('horarios-list');
+
+            if (!token) {
+                alert('Usuario no autenticado. Por favor, inicie sesión.');
+                window.location.href = '/login';
+            }
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'es-PE',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay'
+                },
+                buttonText: {
+                    today: 'Hoy',
+                    week: 'Semana',
+                    day: 'Día'
+                },
+                eventDidMount: function(info) {
+                    info.el.style.fontSize = '12px';
+                    info.el.style.textAlign = 'center';
+                    info.el.style.whiteSpace = 'normal';
+                    info.el.style.overflow = 'hidden';
+                },
+                events: async function (fetchInfo, successCallback, failureCallback) {
+                    try {
+                        const response = await axios.get('/api/v1/horarios', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        const horarios = response.data.horarios;
+
+                        const events = horarios.map(horario => ({
+                            title: 'Disponible',
+                            start: horario.hora_inicio,
+                            end: horario.hora_fin,
+                            backgroundColor: '#28a745',
+                            borderColor: '#28a745',
+                            textColor: '#fff'
+                        }));
+
+                        successCallback(events);
+                        mostrarHorarios(horarios);
+                    } catch (error) {
+                        console.error('Error al cargar horarios:', error);
+                        alert('Error al cargar horarios.');
+                        failureCallback(error);
+                    }
+                }
+            });
+
+            function formatDateTime(dateTime) {
+                const date = new Date(dateTime);
+                const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true };
+                return date.toLocaleString('es-PE', options);
+            }
+
+            function mostrarHorarios(horarios) {
+                horariosList.innerHTML = '';
+                horarios.forEach(horario => {
+                    const horaInicioFormatted = formatDateTime(horario.hora_inicio);
+                    const horaFinFormatted = formatDateTime(horario.hora_fin);
+
+                    const li = document.createElement('li');
+                    li.textContent = `De ${horaInicioFormatted} a ${horaFinFormatted}`;
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Eliminar';
+                    deleteButton.classList.add('btn-delete');
+                    deleteButton.addEventListener('click', () => eliminarHorario(horario.id));
+                    li.appendChild(deleteButton);
+
+                    horariosList.appendChild(li);
+                });
+            }
+
+            async function eliminarHorario(id) {
+                try {
+                    await axios.delete(`/api/v1/horarios/delete/${id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    alert('Horario eliminado');
+                    calendar.refetchEvents(); // Recargar los eventos en el calendario
+                    const response = await axios.get('/api/v1/horarios', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    mostrarHorarios(response.data.horarios); 
+                } catch (error) {
+                    console.error('Error al eliminar horario:', error);
+                    alert('Error al eliminar horario.');
+                }
+            }
+
+            calendar.render();
+
+            document.getElementById('back-to-vet-panel').addEventListener('click', () => {
+                window.location.href = '/vet_em';
+            });
+        });
+    </script>
+</body>
+</html>

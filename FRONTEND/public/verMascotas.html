@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Mascotas</title>
+    <link href="css/verMascotas.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- Encabezado -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="back-to-client-panel" class="btn btn-secondary">Volver al Panel Principal</button>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <div class="container">
+        <h1>Mis Mascotas</h1>
+        <ul id="mascotas-list"></ul>
+    </div>
+
+    <!-- Pie de página -->
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados.
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = sessionStorage.getItem('token');
+        const mascotasList = document.querySelector('#mascotas-list');
+
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+
+        // Función para calcular la edad de la mascota a partir de la fecha de nacimiento
+        function calcularEdad(fechaNacimiento) {
+            const nacimiento = new Date(fechaNacimiento);
+            const hoy = new Date();
+            let edad = hoy.getFullYear() - nacimiento.getFullYear();
+            const mes = hoy.getMonth() - nacimiento.getMonth();
+
+            if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+                edad--;
+            }
+
+            return edad >= 0 ? `${edad} años` : 'Fecha inválida';
+        }
+
+        async function loadMascotas() {
+            try {
+                const response = await axios.get('/api/v1/mascotas', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                mostrarMascotas(response.data.mascotas);
+            } catch (error) {
+                console.error('Error al cargar mascotas:', error);
+                alert('Error al cargar mascotas.');
+            }
+        }
+
+        function mostrarMascotas(mascotas) {
+            mascotasList.innerHTML = '';
+            mascotas.forEach(mascota => {
+                const li = document.createElement('li');
+                li.classList.add('mascota-item');
+
+                // Calcular la edad de la mascota
+                const edad = calcularEdad(mascota.fechanacimiento);
+
+                li.innerHTML = `
+    <div class="mascota-header">
+        <h3>${mascota.nombre}</h3>
+        <span class="mascota-edad">${edad}</span>
+    </div>
+    <div class="mascota-details">
+        <div><strong>Especie:</strong> ${mascota.especie}</div>
+        <div><strong>Raza:</strong> ${mascota.raza}</div>
+        <div><strong>Fecha de Nacimiento:</strong> ${mascota.fechanacimiento}</div>
+    </div>
+    <div class="mascota-footer">
+        <label><strong>Estado:</strong></label>
+    </div>
+`;
+
+
+                const select = document.createElement('select');
+                ['VIVO', 'MUERTO'].forEach(estado => {
+                    const option = document.createElement('option');
+                    option.value = estado;
+                    option.textContent = estado;
+                    if (estado === mascota.estado) option.selected = true;
+                    select.appendChild(option);
+                });
+
+                // Deshabilitar el select si la mascota ya está "MUERTA"
+                if (mascota.estado === 'MUERTO') {
+                    select.disabled = true;
+                }
+
+                select.addEventListener('change', async () => {
+                    if (select.value === 'MUERTO') {
+                        const confirmacion = confirm('¿Seguro que quiere cambiar el estado de su mascota a "MUERTO"?');
+                        if (!confirmacion) {
+                            select.value = 'VIVO';
+                            return;
+                        }
+                    }
+
+                    try {
+                        await axios.put(`/api/v1/mascotas/update-estado/${mascota.id}`, { estado: select.value }, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+
+                        alert(`Estado de la mascota actualizado correctamente a "${select.value}"`);
+
+                        // Deshabilitar el select si el estado se cambió a "MUERTO"
+                        if (select.value === 'MUERTO') {
+                            select.disabled = true;
+                        }
+                    } catch (error) {
+                        console.error('Error al actualizar el estado de la mascota:', error);
+                        alert('Error al actualizar el estado de la mascota.');
+                    }
+                });
+
+                li.appendChild(select);
+                mascotasList.appendChild(li);
+            });
+        }
+
+        document.querySelector('#back-to-client-panel').addEventListener('click', () => {
+            window.location.href = '/client';
+        });
+
+        loadMascotas();
+    </script>
+</body>
+</html>

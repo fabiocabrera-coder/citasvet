@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Cliente</title>
+    <link href="css/registroCliente.css" rel="stylesheet" />
+</head>
+<body>
+     <!-- Encabezado -->
+     <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z"/>
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <a href="/pagina-principal" class="btn btn-green">Volver al Inicio</a>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <div class="main-container">
+        <div class="card">
+            <div class="card-content">
+                <h1>Registrarse</h1>
+                <form id="registerClientForm">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" placeholder="Nombre completo" required>
+                    <span id="error-nombre" class="error-message">Por favor, ingrese su nombre.</span>
+
+                    <label for="correo">Correo:</label>
+                    <input type="email" id="correo" placeholder="Correo electrónico" required>
+                    <span id="error-correo" class="error-message">Por favor, ingrese un correo válido.</span>
+
+                    <label for="contrasena">Contraseña:</label>
+                    <input type="password" id="contrasena" placeholder="Contraseña" required>
+                    <span id="error-contrasena" class="error-message">La contraseña debe tener al menos 6 caracteres.</span>
+
+                    <button type="submit">Registrarse</button>
+                </form>
+                <div class="login-text">
+                    <p>Si ya tienes una cuenta, <a href="/login">Inicia Sesión</a></p>
+                </div>
+            </div>
+            <img class="image-container" src="https://plus.unsplash.com/premium_photo-1663127046003-ef3ec7ce7bc4?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y3V0ZSUyMGNhdHN8ZW58MHx8MHx8fDA%3D" alt="Imagen representativa">
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados
+    </footer>
+
+    <script>
+        const form = document.getElementById('registerClientForm');
+        const nombre = document.getElementById('nombre');
+        const correo = document.getElementById('correo');
+        const contrasena = document.getElementById('contrasena');
+
+        // Mostrar mensajes de error específicos
+        const showError = (input, message) => {
+            const errorElement = document.getElementById(`error-${input.id}`);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        };
+
+        // Limpiar los mensajes de error
+        const clearErrors = () => {
+            document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+        };
+
+        // Validar campos antes de enviar
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            clearErrors();
+
+            let isValid = true;
+
+            if (!nombre.value.trim()) {
+                showError(nombre, 'Por favor, ingrese su nombre.');
+                isValid = false;
+            }
+            if (!correo.value.trim() || !correo.value.includes('@')) {
+                showError(correo, 'Por favor, ingrese un correo válido.');
+                isValid = false;
+            }
+            if (contrasena.value.length < 6) {
+                showError(contrasena, 'La contraseña debe tener al menos 6 caracteres.');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            try {
+                const response = await fetch('/api/v1/users/registrar-client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre: nombre.value, correo: correo.value, contrasena: contrasena.value })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Cliente registrado exitosamente');
+                    form.reset();  // Limpiar formulario después del registro
+                    window.location.href = '/login';
+                } else {
+                    alert(data.msg);  // Mostrar mensaje de error del servidor
+                }
+            } catch (error) {
+                console.error('Error al registrar cliente:', error);
+                alert('Error en el servidor. Inténtalo de nuevo más tarde.');
+            }
+        });
+    </script>
+</body>
+</html>

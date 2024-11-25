@@ -1,0 +1,182 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+}
+
+/* Header */
+header {
+    background-color: #004b8d;
+    color: white;
+    width: 100%;
+    height: auto;
+    padding: 10px 20px;
+    display: flex;
+    flex-wrap: wrap; /* Permite que los elementos se acomoden en múltiples filas si no caben */
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo svg {
+    width: 35px;
+    height: 35px;
+    fill: white;
+}
+
+.logo span {
+    font-size: 1.7em;
+    font-weight: bold;
+}
+
+.header-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap; /* Permite que los botones se ajusten si no hay espacio horizontal */
+    gap: 10px;
+}
+
+.header-buttons .btn {
+    padding: 10px 20px;
+    font-size: 0.9em;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    color: white;
+    background-color: #28a745;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.header-buttons .btn:hover {
+    background-color: #218838;
+    transform: scale(1.05);
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #f1f1f1;
+    color: #777;
+    font-size: 1em;
+    margin-top: auto;
+}
+
+.container {
+    width: 90%;
+    margin: auto;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 120px; /* Añadimos espacio para compensar el header fijo */
+}
+
+h1, h2 {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 1.8em;
+    color: #333;
+}
+
+#calendar-container {
+    overflow-y: auto;
+    max-height: 700px;
+    width: 55%;
+    background-color: #fff;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+    width: 40%;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 10px auto; /* Margen automático para centrar */
+    font-size: 1em;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+.form-control {
+    margin: 8px 0;
+    width: 100%;
+    padding: 8px;
+    font-size: 0.9em;
+    box-sizing: border-box;
+}
+
+.error-message, .suggestion-message {
+    color: red;
+    font-size: 0.9em;
+    margin-top: 8px;
+}
+
+.fc-event {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    padding: 0px 3px !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    text-align: center !important;
+}
+
+.fc-event.ocupado {
+    margin: 0 auto !important; /* Centrar */
+    width: 100% !important; /* Ancho del 90% para ocupar todo el espacio verde */
+    background-color: #ff0000 !important;
+    color: #fff;
+    font-weight: bold;
+    padding: 2px 5px;
+}
+
+.fc-event.disponible {
+    width: 100%;
+    background-color: #28a745;
+    color: #fff;
+}
+
+.fc-event-container {
+    padding: 0;
+    margin: 0;
+}
+
+/* Centrar el botón "Realizar Cita" */
+form#cita-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

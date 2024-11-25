@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualizar Perfil</title>
+    <link href="css/actualizarPerfilVet.css" rel="stylesheet" />
+
+</head>
+<body>
+            <!-- Encabezado -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+                    <!-- Botón para regresar al panel principal -->
+            <button class="back-button" onclick="window.location.href='/vet'">Regresar al Panel Principal</button>
+        </div>
+    </header>
+    
+    <div class="container">
+        <h1>Actualizar Perfil</h1>
+        <form id="updateForm">
+            <label for="nombre">Nombre:</label>
+            <input type="text" id="nombre" placeholder="Nuevo nombre">
+            <div class="error" id="error-nombre"></div>
+
+            <label for="contrasena">Contraseña:</label>
+            <input type="password" id="contrasena" placeholder="Nueva contraseña">
+            <div class="error" id="error-contrasena"></div>
+
+            <button type="submit">Actualizar</button>
+        </form>
+    </div>
+
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        document.getElementById('updateForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const nombre = document.getElementById('nombre').value.trim();
+            const contrasena = document.getElementById('contrasena').value.trim();
+            const errorNombre = document.getElementById('error-nombre');
+            const errorContrasena = document.getElementById('error-contrasena');
+            const token = sessionStorage.getItem('token');
+            const updateData = {};
+            let isValid = true;
+
+            // Limpiar errores previos
+            errorNombre.textContent = '';
+            errorContrasena.textContent = '';
+
+            // Validar nombre (si está ingresado)
+            if (nombre) {
+                if (nombre.length < 3) {
+                    errorNombre.textContent = 'El nombre debe tener al menos 3 caracteres.';
+                    isValid = false;
+                } else {
+                    updateData.nombre = nombre;
+                }
+            }
+
+            // Validar contraseña (si está ingresada)
+            if (contrasena) {
+                if (contrasena.length < 6) {
+                    errorContrasena.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+                    isValid = false;
+                } else {
+                    updateData.contrasena = contrasena;
+                }
+            }
+
+            // Si no se ingresó nada, mostrar error
+            if (!nombre && !contrasena) {
+                errorNombre.textContent = 'Debe ingresar al menos un campo para actualizar.';
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            // Validar token antes de enviar
+            if (!token) {
+                alert('Usuario no autenticado. Por favor, inicie sesión.');
+                return;
+            }
+
+            try {
+                const response = await axios.put('/api/v1/users/actualizar-perfil-vet', updateData, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.data.ok) {
+                    alert('Perfil actualizado exitosamente');
+                    window.location.reload();
+                } else {
+                    alert('Error al actualizar perfil: ' + response.data.msg);
+                }
+            } catch (error) {
+                console.error('Error al actualizar perfil:', error);
+                if (error.response && error.response.status === 401) {
+                    alert('Autenticación fallida. Por favor, inicie sesión nuevamente.');
+                    window.location.href = '/login';
+                } else if (error.response && error.response.status === 400) {
+                    alert('Error en los datos ingresados. Por favor, revise los campos.');
+                } else {
+                    alert('Error al actualizar el perfil. Intente nuevamente más tarde.');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

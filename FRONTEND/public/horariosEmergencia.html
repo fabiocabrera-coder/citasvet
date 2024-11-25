@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Horarios</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <link href="css/horariosEmergencia.css" rel="stylesheet" />
+
+</head>
+<body>
+    
+        <!-- Encabezado -->
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+                </svg>
+                <span>CitVet</span>
+            </div>
+            <div class="header-buttons">
+                <button id="back-to-vet-panel" class="btn btn-secondary">Volver al panel principal</button>
+                </div>
+        </header>
+        
+        <div class="container">
+            <!-- Formulario para agregar horarios -->
+            <div class="form-container">
+                <h1>Agregar Horarios</h1>
+                <form id="create-horario-form">
+                    <label for="hora_inicio">Hora Inicio:</label>
+                    <input type="datetime-local" id="hora_inicio" required>
+    
+                    <label for="hora_fin">Hora Fin:</label>
+                    <input type="datetime-local" id="hora_fin" required>
+                    
+                    <p class="error-message" id="error-message"></p>
+    
+                    <button type="submit" class="btn">Crear Horario</button>
+                </form>
+    
+            </div>
+    
+            <!-- Calendario -->
+            <div class="calendar-container">
+                <h1>Horarios Disponibles</h1>
+                <div id="calendar"></div>
+            </div>
+        </div>
+        
+            <!-- Pie de página -->
+        <footer>
+            &copy; 2024 CitVet. Todos los derechos reservados
+        </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
+    <script>
+        const token = sessionStorage.getItem('token');
+        const createHorarioForm = document.querySelector('#create-horario-form');
+        const errorMessage = document.getElementById('error-message');
+        const backToVetPanel = document.querySelector('#back-to-vet-panel');
+        let existingHorarios = [];
+
+        // Función para obtener los horarios existentes
+        const fetchExistingHorarios = async () => {
+            try {
+                const response = await axios.get('/api/v1/horarios', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                existingHorarios = response.data.horarios; // Guardar los horarios en la variable
+            } catch (error) {
+                console.error('Error al obtener horarios existentes:', error);
+            }
+        };
+
+        // Validar si un horario se solapa con los existentes
+        const isOverlapping = (horaInicio, horaFin) => {
+            return existingHorarios.some(horario => {
+                const existingInicio = new Date(horario.hora_inicio);
+                const existingFin = new Date(horario.hora_fin);
+                return (
+                    (horaInicio >= existingInicio && horaInicio < existingFin) || // Inicio dentro de otro horario
+                    (horaFin > existingInicio && horaFin <= existingFin) ||       // Fin dentro de otro horario
+                    (horaInicio <= existingInicio && horaFin >= existingFin)      // Contiene otro horario
+                );
+            });
+        };
+
+        const setMinDateTime = () => {
+            const now = new Date();
+
+            // Ajustar la fecha mínima al formato 'YYYY-MM-DDTHH:mm' y respetar la zona horaria
+            const formattedMinDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                .toISOString()
+                .slice(0, 16);
+
+            // Establecer el valor mínimo directamente en los campos de hora inicio y fin
+            document.getElementById('hora_inicio').min = formattedMinDate;
+            document.getElementById('hora_fin').min = formattedMinDate;
+        };
+        
+        setMinDateTime();
+
+        // Crear el calendario
+        const calendarEl = document.getElementById('calendar');
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'es-PE',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                today: 'Hoy',
+                week: 'Semana',
+                day: 'Día'
+            },
+            events: async function(fetchInfo, successCallback, failureCallback) {
+                try {
+                    const response = await axios.get('/api/v1/horarios', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const horarios = response.data.horarios;
+                    const events = horarios.map(horario => ({
+                        title: 'Disponible',
+                        start: horario.hora_inicio,
+                        end: horario.hora_fin,
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        textColor: '#fff'
+                    }));
+                    successCallback(events);
+                } catch (error) {
+                    console.error('Error al cargar horarios:', error);
+                    failureCallback(error);
+                }
+            }
+        });
+
+        calendar.render();
+
+        createHorarioForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const horaInicio = new Date(document.getElementById('hora_inicio').value);
+            const horaFin = new Date(document.getElementById('hora_fin').value);
+
+            if (horaFin <= horaInicio) {
+                errorMessage.textContent = 'La hora de fin debe ser posterior a la hora de inicio.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (isOverlapping(horaInicio, horaFin)) {
+                errorMessage.textContent = 'El horario se solapa con uno existente. Por favor, elija otro rango de tiempo.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            errorMessage.textContent = '';
+            errorMessage.style.display = 'none';
+
+            try {
+                const response = await axios.post('/api/v1/horarios/create', {
+                    hora_inicio: horaInicio.toISOString(),
+                    hora_fin: horaFin.toISOString()
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.data.ok) {
+                    alert('Horario creado exitosamente');
+                    createHorarioForm.reset();
+                    setMinDateTime();
+                    calendar.refetchEvents();
+                } else {
+                    alert('Error al crear el horario');
+                }
+            } catch (error) {
+                console.error('Error al crear horario:', error);
+                alert('Error al crear horario');
+            }
+        });
+
+        backToVetPanel.addEventListener('click', () => {
+            window.location.href = '/vet_em';
+        });
+
+        // Obtener horarios existentes al cargar la página
+        fetchExistingHorarios();
+    </script>    
+</body>
+</html>

@@ -1,0 +1,54 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #ffe5e5; /* Fondo rojizo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.container {
+    text-align: center;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 350px;
+    border-top: 6px solid #ff4d4d; /* Borde superior rojo */
+    position: relative;
+}
+h1 {
+    color: #cc0000; /* Título en color rojo */
+    font-size: 1.8em;
+    margin-bottom: 20px;
+}
+p, .cita-info {
+    font-size: 1.1em;
+    color: #555;
+    margin: 8px 0;
+}
+.cita-info {
+    font-weight: bold;
+    color: #333;
+}
+.btn {
+    padding: 12px 25px;
+    font-size: 1em;
+    color: #fff;
+    background-color: #cc0000; /* Botón en color rojo */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+.btn:hover {
+    background-color: #990000;
+}
+.emergency-icon {
+    color: #cc0000;
+    font-size: 2em;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}

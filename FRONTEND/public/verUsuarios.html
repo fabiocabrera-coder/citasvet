@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios Registrados</title>
+    <link rel="stylesheet" href="css/verUsuarios.css">
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .main {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 25%;
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar button {
+            background-color: white;
+            color: #007bff;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .sidebar button:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+
+        .content {
+            width: 75%;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .user-item {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .user-item strong {
+            display: inline-block;
+            width: 120px;
+        }
+
+        select {
+            padding: 5px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="back-to-admin" class="btn">Volver al Panel Principal</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main">
+        <div class="sidebar">
+            <button id="filter-clients">Ver Usuarios Clientes</button>
+            <button id="filter-vets">Ver Usuarios Veterinarios</button>
+        </div>
+        <div class="content">
+            <h1>Usuarios Registrados</h1>
+            <ul id="user-list">
+                <!-- Inicialmente vacío -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados.
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = sessionStorage.getItem('token');
+
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+
+        const userList = document.querySelector('#user-list');
+        const contentHeader = document.querySelector('.content h1');
+
+        // Función para cargar usuarios clientes
+        async function loadClients() {
+            contentHeader.textContent = 'Clientes Registrados';
+            try {
+                const response = await axios.get('/api/v1/users/clients', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const clientes = response.data.clientes;
+                userList.innerHTML = ''; // Limpiar lista
+                clientes.forEach(client => {
+                    const li = document.createElement('li');
+                    li.classList.add('user-item');
+
+                    li.innerHTML = `
+                        <strong>Nombre:</strong> ${client.nombre}<br>
+                        <strong>Correo:</strong> ${client.correo}<br>
+                        <label><strong>Estado:</strong></label>
+                    `;
+
+                    const select = document.createElement('select');
+                    ['ACTIVO', 'INACTIVO'].forEach(estado => {
+                        const option = document.createElement('option');
+                        option.value = estado;
+                        option.textContent = estado;
+                        if (estado === client.estado) option.selected = true;
+                        select.appendChild(option);
+                    });
+
+                    select.addEventListener('change', async () => {
+                        try {
+                            await axios.put(`/api/v1/users/update-estado/${client.id}`, { estado: select.value }, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            alert(`El cliente ${client.nombre} tiene el estado "${select.value}"`);
+                        } catch (error) {
+                            alert('Error al actualizar el estado del cliente');
+                            console.error('Error al actualizar estado:', error);
+                        }
+                    });
+
+                    li.appendChild(select);
+                    userList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error al cargar clientes:', error);
+                alert('Error al cargar clientes.');
+            }
+        }
+
+        // Función para cargar usuarios veterinarios
+        async function loadVets() {
+            contentHeader.textContent = 'Veterinarios Registrados';
+            try {
+                const response = await axios.get('/api/v1/users/vets', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const veterinarios = response.data.veterinarios;
+                userList.innerHTML = ''; // Limpiar lista
+                veterinarios.forEach(vet => {
+                    const li = document.createElement('li');
+                    li.classList.add('user-item');
+
+                    li.innerHTML = `
+                        <strong>Nombre:</strong> ${vet.nombre}<br>
+                        <strong>Correo:</strong> ${vet.correo}<br>
+                        <strong>Rol:</strong> ${vet.rol}<br>
+                        <label><strong>Estado:</strong></label>
+                    `;
+
+                    const select = document.createElement('select');
+                    ['ACTIVO', 'INACTIVO'].forEach(estado => {
+                        const option = document.createElement('option');
+                        option.value = estado;
+                        option.textContent = estado;
+                        if (estado === vet.estado) option.selected = true;
+                        select.appendChild(option);
+                    });
+
+                    select.addEventListener('change', async () => {
+                        try {
+                            await axios.put(`/api/v1/users/update-estado/${vet.id}`, { estado: select.value }, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            alert(`El veterinario ${vet.nombre} tiene el estado "${select.value}"`);
+                        } catch (error) {
+                            alert('Error al actualizar el estado del veterinario');
+                            console.error('Error al actualizar estado:', error);
+                        }
+                    });
+
+                    li.appendChild(select);
+                    userList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error al cargar veterinarios:', error);
+                alert('Error al cargar veterinarios.');
+            }
+        }
+
+        // Asignar eventos a botones
+        document.getElementById('filter-clients').addEventListener('click', loadClients);
+        document.getElementById('filter-vets').addEventListener('click', loadVets);
+
+        // Redirigir al panel principal del administrador
+        document.getElementById('back-to-admin').addEventListener('click', () => {
+            window.location.href = '/admin';
+        });
+
+        // Inicialmente vacío
+        userList.innerHTML = '<p>Seleccione un botón para ver los usuarios.</p>';
+    </script>
+</body>
+</html>

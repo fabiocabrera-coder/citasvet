@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservar Cita</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <link href="css/citas.css" rel="stylesheet" />
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="back-to-client-panel" class="btn btn-secondary">Volver al Panel Principal</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="form-section">
+            <h1>Reservar cita normal</h1>
+            <form id="cita-form">
+                <label for="veterinario">Elegir Veterinario:</label>
+                <select id="veterinario" class="form-control" required>
+                    <option value="">Seleccione un veterinario</option>
+                </select>
+                <label for="fecha">Fecha y Hora:</label>
+                <input type="datetime-local" id="fecha" class="form-control" min="" required>
+                <label for="descripcion">Descripción:</label>
+                <textarea id="descripcion" class="form-control" required></textarea>
+                <label for="tipoCita">Tipo de Cita:</label>
+                <select id="tipoCita" class="form-control" required></select>
+                <div id="error-message" class="error-message"></div>
+                <div id="suggestion-message" class="suggestion-message"></div>
+                <button type="submit" class="btn">Realizar Cita</button>
+            </form>
+        </div>
+
+        <div id="calendar-container">
+            <h2>Horario del Veterinario</h2>
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <footer>© 2024 CitVet. Todos los derechos reservados.</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
+    <script>
+        // Setear la fecha mínima en el campo de fecha y hora
+        const inputFecha = document.getElementById('fecha');
+        const now = new Date();
+    
+        // Formatear la fecha actual para establecer como mínimo (sin desfase horario)
+        const formattedMinDate = new Date(
+            now.getTime() - now.getTimezoneOffset() * 60000
+        )
+            .toISOString()
+            .slice(0, 16); // Formato 'YYYY-MM-DDTHH:mm'
+    
+        inputFecha.min = formattedMinDate;
+    
+        const token = sessionStorage.getItem('token');
+        const mascotaId = new URLSearchParams(window.location.search).get('mascotaId');
+        const errorMessageDiv = document.getElementById('error-message');
+    
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+    
+        async function loadVeterinarios() {
+            try {
+                const response = await axios.get('/api/v1/citas/veterinarios-disponibles', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const veterinarioSelect = document.getElementById('veterinario');
+                response.data.veterinarios.forEach(vet => {
+                    const option = document.createElement('option');
+                    option.value = vet.id;
+                    option.textContent = vet.nombre;
+                    veterinarioSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar veterinarios:', error);
+                alert('Error al cargar lista de veterinarios');
+            }
+        }
+    
+        async function loadDisponibilidadVeterinario(idVeterinario) {
+            try {
+                const responseDisponibilidad = await axios.get('/api/v1/citas/disponibilidad-semanal', {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    params: { idVeterinario: idVeterinario }
+                });
+    
+                if (!responseDisponibilidad.data || !responseDisponibilidad.data.disponibilidad) {
+                    throw new Error('No se pudo obtener la disponibilidad');
+                }
+    
+                const disponibilidad = responseDisponibilidad.data.disponibilidad;
+    
+                const responseOcupadas = await axios.get('/api/v1/citas/ocupadas', {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    params: { idVeterinario: idVeterinario }
+                });
+    
+                if (!responseOcupadas.data || !responseOcupadas.data.citasOcupadas) {
+                    throw new Error('No se pudo obtener las citas ocupadas');
+                }
+    
+                const ocupadas = responseOcupadas.data.citasOcupadas;
+    
+                const eventosDisponibles = disponibilidad.map(intervalo => ({
+                    title: 'Disponible',
+                    start: intervalo.inicio,
+                    end: intervalo.fin,
+                    backgroundColor: '#28a745',
+                    borderColor: '#28a745',
+                    textColor: '#fff',
+                    classNames: ['disponible']
+                }));
+    
+                const eventosOcupados = ocupadas.map(cita => ({
+                    title: 'Ocupado',
+                    start: cita.inicio,
+                    end: cita.fin,
+                    backgroundColor: '#ff0000',
+                    borderColor: '#ff0000',
+                    textColor: '#fff',
+                    classNames: ['ocupado']
+                }));
+    
+                const calendarEl = document.getElementById('calendar');
+                const calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'timeGridWeek',
+                    locale: 'es-PE',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'timeGridWeek,timeGridDay'
+                    },
+                    events: [...eventosDisponibles, ...eventosOcupados],
+                    dateClick: function(info) {
+                        const isAvailable = eventosDisponibles.some(evento => {
+                            const start = new Date(evento.start);
+                            const end = new Date(evento.end);
+                            const clickedDate = new Date(info.dateStr);
+                            return clickedDate >= start && clickedDate < end;
+                        });
+
+                        if (isAvailable) {
+                            document.getElementById('fecha').value = info.dateStr;
+                            document.getElementById('error-message').textContent = ''; // Limpiar errores
+                        } else {
+                            document.getElementById('error-message').textContent = 'El horario seleccionado no está disponible.';
+                            document.getElementById('fecha').value = ''; // Limpiar selección
+                        }
+                    }
+
+                });
+    
+                calendar.render();
+            } catch (error) {
+                console.error('Error al cargar disponibilidad:', error);
+                alert(`Error al cargar disponibilidad del veterinario: ${error.message}`);
+            }
+        }
+    
+        loadVeterinarios();
+    
+        document.getElementById('veterinario').addEventListener('change', (event) => {
+            const idVeterinario = event.target.value;
+            if (idVeterinario) loadDisponibilidadVeterinario(idVeterinario);
+        });
+    
+        async function loadTiposCita() {
+            try {
+                const response = await axios.get('/api/v1/tipo-cita', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+    
+                const tipoCitaSelect = document.getElementById('tipoCita');
+                tipoCitaSelect.innerHTML = '<option value="">Seleccione un tipo de cita</option>'; // Mensaje predeterminado
+    
+                response.data.tiposCita.forEach(tipo => {
+                    const option = document.createElement('option');
+                    option.value = tipo.id;
+                    option.textContent = `${tipo.nombre} - Duración: ${tipo.duracion || 'Variable'} - Precio: ${tipo.precio}`;
+                    tipoCitaSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar tipos de cita:', error);
+                alert('Error al cargar tipos de cita');
+            }
+        }
+    
+        loadTiposCita();
+    
+        document.getElementById('cita-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const fecha = document.getElementById('fecha').value;
+            const descripcion = document.getElementById('descripcion').value;
+            const tipoCitaId = document.getElementById('tipoCita').value;
+            const idVeterinario = document.getElementById('veterinario').value;
+            const errorMessageDiv = document.getElementById('error-message');
+
+            if (!fecha) {
+                errorMessageDiv.textContent = 'Por favor, seleccione una fecha válida dentro del horario disponible.';
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/v1/citas/create', {
+                    fecha,
+                    descripcion,
+                    idMascota: mascotaId,
+                    idTipoCita: tipoCitaId,
+                    idVeterinario: idVeterinario
+                }, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.data.ok) {
+                    alert('Cita reservada exitosamente');
+                    window.location.href = '/client';
+                }
+            } catch (error) {
+                errorMessageDiv.textContent = error.response?.data?.msg || 'Error inesperado, intente nuevamente.';
+            }
+        });
+    
+        document.getElementById('back-to-client-panel').addEventListener('click', () => {
+            window.location.href = '/client';
+        });
+    </script>    
+</body>
+</html>

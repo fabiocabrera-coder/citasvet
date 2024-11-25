@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citas de Emergencia del Veterinario</title>
+    <link href="css/verCitasVetEm.css" rel="stylesheet" />
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+        <!-- Encabezado -->
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+                </svg>
+                <span>CitVet</span>
+            </div>
+            <div class="header-buttons">
+            <button id="back-to-panel" class="btn">Volver al Panel de Emergencias</button>
+            </div>
+        </header>
+        
+        <div class="container">
+            <h1>Citas de Emergencia del Veterinario</h1>
+    
+            <!-- Filtros -->
+            <div class="filters">
+                <div>
+                    <label for="estado-filter">Estado:</label>
+                    <select id="estado-filter">
+                        <option value="">Todos</option>
+                        <option value="Emergencia">Emergencia</option>
+                        <option value="Confirmada">Confirmada</option>
+                        <option value="Completada">Completada</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fecha-filter">Fecha:</label>
+                    <input type="date" id="fecha-filter">
+                </div>
+                <button id="apply-filters">Aplicar Filtros</button>
+            </div>
+    
+            <ul id="citas-list"></ul>
+        </div>
+      
+        <!-- Pie de página -->
+        <footer>
+            &copy; 2024 CitVet. Todos los derechos reservados
+        </footer>
+
+    <script>
+        const token = sessionStorage.getItem('token');
+
+        async function loadCitas() {
+            const estadoFilter = document.getElementById('estado-filter').value;
+            const fechaFilter = document.getElementById('fecha-filter').value;
+
+            try {
+                const response = await axios.get('/api/v1/citas/vet_em/emergencia', { 
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const citas = response.data.citas;
+
+                const citasList = document.getElementById('citas-list');
+                citasList.innerHTML = ''; // Limpiar lista
+
+                citas
+                    .filter(cita => {
+                        if (estadoFilter && cita.estado !== estadoFilter) return false;
+                        if (fechaFilter && !cita.fecha.startsWith(fechaFilter)) return false;
+                        return true;
+                    })
+                    .forEach(cita => {
+                        const li = document.createElement('li');
+                        li.classList.add('cita-item');
+                        
+                        // Formatear fecha
+                        const fechaFormateada = new Date(cita.fecha).toLocaleString('es-PE');
+                        
+                        li.innerHTML = `
+                            <strong>Fecha:</strong> ${fechaFormateada}<br>
+                            <strong>Cliente:</strong> ${cita.cliente_nombre}<br>
+                            <strong>Mascota:</strong> ${cita.mascota_nombre}<br>
+                            <strong>Descripción:</strong> ${cita.descripcion || 'Sin descripción'}<br>
+                            <strong>Tipo de Cita:</strong> ${cita.tipo_cita_nombre}<br>
+                            <label><strong>Estado:</strong></label>
+                        `;
+
+                        if (cita.estado !== 'Completada') {
+                            const select = document.createElement('select');
+
+                            const defaultOption = document.createElement('option');
+                            defaultOption.value = '';
+                            defaultOption.textContent = 'Elija una opción para el estado de la cita';
+                            defaultOption.selected = true;
+                            defaultOption.disabled = true;
+                            select.appendChild(defaultOption);
+
+                            ['Confirmada', 'Completada'].forEach(estado => {
+                                const option = document.createElement('option');
+                                option.value = estado;
+                                option.textContent = estado;
+                                if (estado === cita.estado) option.selected = true;
+                                select.appendChild(option);
+                            });
+
+                            select.addEventListener('change', () => {
+                                const newEstado = select.value;
+
+                                if (newEstado === 'Completada' && cita.estado !== 'Confirmada') {
+                                    alert('Para completar una cita, primero debe estar confirmada.');
+                                    loadCitas(); // Resetear el estado del select
+                                    return;
+                                }
+
+                                if (newEstado === 'Confirmada') {
+                                    const confirmConfirm = confirm('¿Seguro que quiere confirmar esta cita?');
+                                    if (confirmConfirm) {
+                                        updateCitaEstado(cita.cita_id || cita.id, newEstado);
+                                    } else {
+                                        loadCitas();
+                                    }
+                                } else if (newEstado === 'Completada') {
+                                    updateCitaEstado(cita.cita_id || cita.id, newEstado);
+                                }
+                            });
+
+                            li.appendChild(select);
+                        } else {
+                            li.innerHTML += `<span>${cita.estado}</span><br>`;
+                        }
+
+                        citasList.appendChild(li);
+                    });
+            } catch (error) {
+                console.error('Error al cargar citas de emergencia:', error.response?.data || error.message);
+                alert('Error al cargar citas de emergencia');
+            }
+        }
+
+        async function updateCitaEstado(id, estado) {
+            try {
+                const response = await axios.put(`/api/v1/citas/update/${id}`, { estado }, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                alert(`Estado de la cita actualizado a ${estado}.`);
+                loadCitas();
+            } catch (error) {
+                console.error('Error al actualizar el estado:', error.response?.data || error.message);
+                alert('Error al actualizar el estado');
+            }
+        }
+
+        document.getElementById('back-to-panel').addEventListener('click', () => {
+            window.location.href = '/vet_em';
+        });
+
+        document.getElementById('apply-filters').addEventListener('click', loadCitas);
+
+        loadCitas();
+    </script>
+</body>
+</html>

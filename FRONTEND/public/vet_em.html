@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Veterinario de Emergencias</title>
+    <link href="css/vet_em.css" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    </head>
+    <body>
+    
+    <!-- Encabezado -->
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z" />
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <button id="update-profile" class="btn btn-secondary">Actualizar perfil</button>
+            <button id="logout" class="btn">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <!-- Contenedor principal -->
+    <div class="container">
+        <div id="user-name">
+            Cargando...
+            <div class="spinner"></div>
+        </div>
+        <h1>Funcionalidades para el VETERINARIO DE EMERGENCIAS</h1>
+
+        <!-- Botones de opciones -->
+
+        <button id="add-horario" class="btn"><span class="material-icons">edit_calendar</span>Agregar Horario de Disponibilidad</button>
+        <button id="ver-horarios" class="btn"><span class="material-icons">preview</span>Ver mis Horarios</button>
+        <button id="ver-citas-vet" class="btn"><span class="material-icons">calendar_today</span>Ver citas</button>
+    </div>
+
+        <footer>
+            &copy; 2024 CitVet. Todos los derechos reservados
+        </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = sessionStorage.getItem('token');
+        const logout = document.querySelector('#logout');
+        const addHorario = document.querySelector('#add-horario');
+        const verHorarios = document.querySelector('#ver-horarios');
+        const verCitasVetBtn = document.getElementById('ver-citas-vet');
+        const userInfo = document.getElementById('user-name');
+        const updateProfileBtn = document.getElementById('update-profile');
+
+        if (!token) {
+            alert('Usuario no autenticado. Por favor, inicie sesión.');
+            window.location.href = '/login';
+        }
+
+        // Obtener nombre del usuario y mostrarlo
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        userInfo.textContent = `Hola, ${decodedToken.nombre}`;
+
+        // Cerrar sesión
+        logout.addEventListener('click', () => {
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('nombreUsuario');
+            sessionStorage.removeItem('citasNotificadas'); // Limpiar estado al cerrar sesión
+            window.location.href = "/login";
+        });
+
+        // Verificar si hay citas de emergencia o pendientes
+        const checkAppointments = async () => {
+            try {
+                const response = await axios.get('/api/v1/citas/vet_em', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const citas = response.data.citas;
+                let citasNotificadas = JSON.parse(sessionStorage.getItem('citasNotificadas')) || [];
+
+                citas.forEach(cita => {
+                    const citaId = cita.id;
+
+                    // Verificar si la cita no ha sido confirmada y no ha sido notificada previamente
+                    if (!citasNotificadas.includes(citaId) && cita.estado !== 'Confirmado') {
+                        let mensaje = `Tienes una cita de ${cita.tipo_cita_nombre} con la fecha de ${new Date(cita.fecha).toLocaleString('es-PE')}, debe ser atendida rápidamente.`;
+
+                        // Mostrar alerta solo si la cita está en estado "Emergencia" o "Pendiente"
+                        if (cita.estado === 'Pendiente' || cita.estado === 'Emergencia') {
+                            alert(mensaje);
+
+                            // Agregar cita a las notificadas
+                            citasNotificadas.push(citaId);
+                        }
+                    }
+                });
+
+                // Actualizar estado de citas notificadas
+                sessionStorage.setItem('citasNotificadas', JSON.stringify(citasNotificadas));
+            } catch (error) {
+                console.error('Error al verificar citas:', error);
+            }
+        };
+
+        // Llamar a la función para verificar citas al cargar la página
+        checkAppointments();
+
+         // Mostrar información del usuario utilizando el endpoint `/me`
+         const fetchUserInfo = async () => {
+            try {
+                const response = await axios.get('/api/v1/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.data.ok) {
+                    const user = response.data.user;
+                    userInfo.textContent = `Hola, ${user.nombre}`;
+                } else {
+                    userInfo.textContent = 'Error al cargar datos del usuario';
+                }
+            } catch (error) {
+                console.error('Error al cargar información del usuario:', error);
+                userInfo.textContent = 'Error al cargar datos del usuario';
+            }
+        };
+
+        // Ejecutar la función al cargar el panel
+        fetchUserInfo();
+
+        // Redirección a las secciones
+        addHorario.addEventListener('click', () => window.location.href = "/horarios-emergencia");
+        verHorarios.addEventListener('click', () => window.location.href = "/ver-horarios-emergencia");
+        verCitasVetBtn.addEventListener('click', () => window.location.href = "/ver-citas-vet-emergencia");
+        updateProfileBtn.addEventListener('click', () => window.location.href = "/actualizar-perfil-vet-em");
+    </script>
+</body>
+</html>

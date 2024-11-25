@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="css/login.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- Encabezado -->
+    <header>
+        <div class="logo">
+            <!-- Símbolo de huella -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 13c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-5.934-.346c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm11.868 0c.938 0 1.7.76 1.7 1.697 0 .938-.762 1.7-1.7 1.7s-1.7-.762-1.7-1.7c0-.937.762-1.697 1.7-1.697zm-5.934-6.346c1.106 0 2 .894 2 2 0 1.104-.894 2-2 2s-2-.896-2-2c0-1.106.894-2 2-2zm-4.75 1.285c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75zm9.5 0c.963 0 1.75.785 1.75 1.75s-.787 1.75-1.75 1.75c-.964 0-1.75-.785-1.75-1.75s.786-1.75 1.75-1.75z"/>
+            </svg>
+            <span>CitVet</span>
+        </div>
+        <div class="header-buttons">
+            <a href="/pagina-principal" class="btn btn-blue">Volver a Inicio</a>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <div class="main-container">
+        <div class="card">
+            <div class="card-content">
+                <h1>Iniciar Sesión</h1>
+                <form id="loginForm">
+                    <label for="correo">Correo:</label>
+                    <input type="email" id="correo" placeholder="Correo" required>
+                    
+                    <label for="contrasena">Contraseña:</label>
+                    <input type="password" id="contrasena" placeholder="Contraseña" required>
+                    <button type="submit">Iniciar Sesión</button>
+                </form>
+                <div class="register-text">
+                    <p>Si no tienes una cuenta, <a href="/registrar-cliente">Regístrate</a></p>
+                </div>
+            </div>
+            <img src="https://www.creativefabrica.com/wp-content/uploads/2023/08/20/Happy-Golden-Retriever-Wearing-Straw-Hat-77334459-1.png" alt="Perro feliz">        
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2024 CitVet. Todos los derechos reservados
+    </footer>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const correo = document.getElementById('correo').value;
+            const contrasena = document.getElementById('contrasena').value;
+
+            if (!correo || !contrasena) {
+                alert('Por favor ingrese todos los campos');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/users/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo, contrasena })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    sessionStorage.setItem('token', data.token);
+                    sessionStorage.setItem('nombreUsuario', data.nombre);
+
+                    if (data.id_rol === 1) {
+                        window.location.href = '/admin';
+                    } else if (data.id_rol === 2) {
+                        window.location.href = '/vet';
+                    } else if (data.id_rol === 3) {
+                        window.location.href = '/client';
+                    } else if (data.id_rol === 5) {
+                        window.location.href = '/vet_em';
+                    }
+                } else {
+                    if (data.error === "Token expirado") {
+                        alert("Su sesión ha expirado. Inicie sesión nuevamente.");
+                        window.location.href = "/login";
+                    } else {
+                        alert(data.msg);
+                    }
+                }
+            } catch (error) {
+                console.error('Error en el login:', error);
+                alert('Error en el servidor. Inténtalo de nuevo más tarde.');
+            }
+        });
+    </script>
+</body>
+</html>
